@@ -1,0 +1,37 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{AA7D5182-4380-4FEE-9C29-E82A7E18B238}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{73B9E424-BC51-4858-AB3B-5A848EC79CA1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Serilog.HttpClient", "src\Serilog.HttpClient\Serilog.HttpClient.csproj", "{31475D8A-0222-4C02-8A8F-75E1C79187E5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Serilog.HttpClient.Samples.ConsoleApp", "samples\Serilog.HttpClient.Samples.ConsoleApp\Serilog.HttpClient.Samples.ConsoleApp.csproj", "{A4CD6F06-4763-44CE-B748-4BCF186FE584}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Serilog.HttpClient.Samples.AspNetCore", "samples\Serilog.HttpClient.Samples.AspNetCore\Serilog.HttpClient.Samples.AspNetCore.csproj", "{5D943CED-45BE-44F2-8662-A957793EA8A0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{31475D8A-0222-4C02-8A8F-75E1C79187E5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{31475D8A-0222-4C02-8A8F-75E1C79187E5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{31475D8A-0222-4C02-8A8F-75E1C79187E5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{31475D8A-0222-4C02-8A8F-75E1C79187E5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A4CD6F06-4763-44CE-B748-4BCF186FE584}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A4CD6F06-4763-44CE-B748-4BCF186FE584}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A4CD6F06-4763-44CE-B748-4BCF186FE584}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A4CD6F06-4763-44CE-B748-4BCF186FE584}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5D943CED-45BE-44F2-8662-A957793EA8A0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5D943CED-45BE-44F2-8662-A957793EA8A0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5D943CED-45BE-44F2-8662-A957793EA8A0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5D943CED-45BE-44F2-8662-A957793EA8A0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{31475D8A-0222-4C02-8A8F-75E1C79187E5} = {AA7D5182-4380-4FEE-9C29-E82A7E18B238}
+		{A4CD6F06-4763-44CE-B748-4BCF186FE584} = {73B9E424-BC51-4858-AB3B-5A848EC79CA1}
+		{5D943CED-45BE-44F2-8662-A957793EA8A0} = {73B9E424-BC51-4858-AB3B-5A848EC79CA1}
+	EndGlobalSection
+EndGlobal
