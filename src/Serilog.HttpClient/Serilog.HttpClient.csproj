@@ -5,6 +5,8 @@
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <Title>Serilog http client logging delegating handler </Title>
         <Authors>Alireza Vafi</Authors>
+        <PackageProjectUrl>https://github.com/alirezavafi/serilog-httpclient</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/alirezavafi/serilog-httpclient</RepositoryUrl>
     </PropertyGroup>
     <ItemGroup>
         <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
