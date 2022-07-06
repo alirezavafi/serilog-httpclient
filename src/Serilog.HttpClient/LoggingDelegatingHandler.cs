@@ -33,10 +33,13 @@ namespace Serilog.HttpClient
         private readonly ILogger _logger;
 
         public LoggingDelegatingHandler(
-            RequestLoggingOptions options)
+            RequestLoggingOptions options,
+            HttpMessageHandler httpMessageHandler = default)
         {
             _options = options ?? throw new ArgumentNullException(nameof(options));
             _logger =  options.Logger?.ForContext<LoggingDelegatingHandler>() ?? Serilog.Log.Logger.ForContext<LoggingDelegatingHandler>();
+
+            InnerHandler = httpMessageHandler ?? new HttpClientHandler();
         }
         
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
