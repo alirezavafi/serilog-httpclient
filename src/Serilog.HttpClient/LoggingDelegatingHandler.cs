@@ -195,13 +195,13 @@ namespace Serilog.HttpClient
                 using (Serilog.Context.LogContext.PushProperty("RequestQueryString", req.RequestUri.Query))
                 using (Serilog.Context.LogContext.PushProperty("RequestQuery", requestQuery))
                 using (Serilog.Context.LogContext.PushProperty("RequestBodyString", requestBodyText))
-                using (Serilog.Context.LogContext.PushProperty("RequestBody", requestBody))
+                using (Serilog.Context.LogContext.PushProperty("RequestBody", requestBody, destructureObjects: true))
                 using (Serilog.Context.LogContext.PushProperty("RequestHeaders", requestHeaders))
                 using (Serilog.Context.LogContext.PushProperty("StatusCode", resp?.StatusCode.ToString()))
                 using (Serilog.Context.LogContext.PushProperty("IsSucceed", isRequestOk))
                 using (Serilog.Context.LogContext.PushProperty("ElapsedMilliseconds", elapsedMs))
                 using (Serilog.Context.LogContext.PushProperty("ResponseBodyString", responseBodyText))
-                using (Serilog.Context.LogContext.PushProperty("ResponseBody", responseBody))
+                using (Serilog.Context.LogContext.PushProperty("ResponseBody", responseBody, destructureObjects: true))
                 using (Serilog.Context.LogContext.PushProperty("ResponseHeaders", responseHeaders))
                 {
                     _logger.Write(level, ex, _options.MessageTemplate);
