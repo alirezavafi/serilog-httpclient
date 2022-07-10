@@ -45,7 +45,7 @@ public class LoggingDelegatingHandlerTests
             Assert.Single(logEvents);
 
             var logEvent = logEvents.First();
-            Assert.Equal("HTTP Client request {RequestMethod} {RequestUri} completed in {ElapsedMilliseconds:0.0000}ms", logEvent.MessageTemplate.Text);
+            Assert.Equal("HTTP {RequestMethod} {RequestScheme}://{RequestHost}{RequestPath}{RequestQueryString} responded {StatusCode} in {ElapsedMilliseconds:0.0000} ms", logEvent.MessageTemplate.Text);
             Assert.Equal(LogEventLevel.Information, logEvent.Level);
             Assert.Null(logEvent.Exception);
             Assert.Equal("POST", logEvent.Properties["RequestMethod"].LiteralValue());
