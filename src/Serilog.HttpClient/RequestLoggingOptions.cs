@@ -13,11 +13,11 @@ namespace Serilog.HttpClient
     public class RequestLoggingOptions
     {
         const string DefaultRequestCompletionMessageTemplate =
-            "HTTP {RequestMethod} {RequestScheme}://{RequestHost}{RequestPath}{RequestQueryString} responded {StatusCode} in {ElapsedMilliseconds:0.0000} ms";
+            "HTTP {RequestMethod} {RequestUri} responded {StatusCode} in {ElapsedMilliseconds:0.0000} ms";
 
         /// <summary>
         /// Gets or sets the message template. The default value is
-        /// <c>"HTTP {RequestMethod} {RequestScheme}://{RequestHost}{RequestPath}{RequestQueryString} responded {StatusCode} in {ElapsedMilliseconds:0.0000} ms"</c>.
+        /// <c>"HTTP {RequestMethod} {RequestUri} responded {StatusCode} in {ElapsedMilliseconds:0.0000} ms"</c>.
         /// </summary>
         /// <value>
         /// The message template.

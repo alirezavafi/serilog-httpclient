@@ -21,10 +21,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
-using Microsoft.Extensions.Options;
 using Serilog.Debugging;
-using Serilog.Events;
-using Serilog.Parsing;
 
 namespace Serilog.HttpClient
 {
@@ -32,16 +29,11 @@ namespace Serilog.HttpClient
     {
         private readonly RequestLoggingOptions _options;
         private readonly ILogger _logger;
-        private readonly MessageTemplate _messageTemplate;
 
-        public LoggingDelegatingHandler(
-            RequestLoggingOptions options,
-            HttpMessageHandler httpMessageHandler = default)
+        public LoggingDelegatingHandler(RequestLoggingOptions options)
         {
             _options = options ?? throw new ArgumentNullException(nameof(options));
             _logger = options.Logger?.ForContext<LoggingDelegatingHandler>() ?? Serilog.Log.Logger.ForContext<LoggingDelegatingHandler>();
-            _messageTemplate = new MessageTemplateParser().Parse(options.MessageTemplate);
-            InnerHandler = httpMessageHandler ?? new HttpClientHandler();
         }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -72,8 +64,6 @@ namespace Serilog.HttpClient
         {
             var level = _options.GetLevel(req, resp, elapsedMs, ex);
             if (!_logger.IsEnabled(level)) return;
-
-            var properties = new List<LogEventProperty>();
 
             var requestBodyText = string.Empty;
             var responseBodyText = string.Empty;
@@ -148,16 +138,6 @@ namespace Serilog.HttpClient
                     SelfLog.WriteLine("Cannot parse query string");
                 }
 
-                properties.Add(new LogEventProperty("RequestMethod", new ScalarValue(req.Method.Method)));
-                properties.Add(new LogEventProperty("RequestScheme", new ScalarValue(req.RequestUri.Scheme)));
-                properties.Add(new LogEventProperty("RequestHost", new ScalarValue(req.RequestUri.Host)));
-                properties.Add(new LogEventProperty("RequestPath", new ScalarValue(req.RequestUri.AbsolutePath)));
-                properties.Add(new LogEventProperty("RequestQueryString", new ScalarValue(req.RequestUri.Query)));
-                properties.Add(new LogEventProperty("RequestQuery", new ScalarValue(requestQuery)));
-                properties.Add(new LogEventProperty("RequestBodyString", new ScalarValue(requestBodyText)));
-                properties.Add(new LogEventProperty("RequestBody", new ScalarValue(requestBody)));
-                properties.Add(new LogEventProperty("RequestHeaders", new ScalarValue(requestHeaders)));
-
                 object responseBody = null;
                 if ((_options.ResponseBodyLogMode == LogMode.LogAll ||
                      (!isRequestOk && _options.ResponseBodyLogMode == LogMode.LogFailures)))
@@ -207,15 +187,25 @@ namespace Serilog.HttpClient
                     }
                 }
 
-                properties.Add(new LogEventProperty("StatusCode", new ScalarValue(resp?.StatusCode.ToString())));
-                properties.Add(new LogEventProperty("IsSucceed", new ScalarValue(isRequestOk)));
-                properties.Add(new LogEventProperty("ElapsedMilliseconds", new ScalarValue(elapsedMs)));
-                properties.Add(new LogEventProperty("ResponseBodyString", new ScalarValue(responseBodyText)));
-                properties.Add(new LogEventProperty("ResponseBody", new ScalarValue(responseBody)));
-                properties.Add(new LogEventProperty("ResponseHeaders", new ScalarValue(responseHeaders)));
-
-                var evt = new LogEvent(DateTimeOffset.Now, level, ex, _messageTemplate, properties);
-                _logger.Write(evt);
+                using (Serilog.Context.LogContext.PushProperty("RequestMethod", req.Method))
+                using (Serilog.Context.LogContext.PushProperty("RequestUri", req.RequestUri))
+                using (Serilog.Context.LogContext.PushProperty("RequestScheme", req.RequestUri.Scheme))
+                using (Serilog.Context.LogContext.PushProperty("RequestHost", req.RequestUri.Host))
+                using (Serilog.Context.LogContext.PushProperty("RequestPath", req.RequestUri.AbsolutePath))
+                using (Serilog.Context.LogContext.PushProperty("RequestQueryString", req.RequestUri.Query))
+                using (Serilog.Context.LogContext.PushProperty("RequestQuery", requestQuery))
+                using (Serilog.Context.LogContext.PushProperty("RequestBodyString", requestBodyText))
+                using (Serilog.Context.LogContext.PushProperty("RequestBody", requestBody))
+                using (Serilog.Context.LogContext.PushProperty("RequestHeaders", requestHeaders))
+                using (Serilog.Context.LogContext.PushProperty("StatusCode", resp?.StatusCode.ToString()))
+                using (Serilog.Context.LogContext.PushProperty("IsSucceed", isRequestOk))
+                using (Serilog.Context.LogContext.PushProperty("ElapsedMilliseconds", elapsedMs))
+                using (Serilog.Context.LogContext.PushProperty("ResponseBodyString", responseBodyText))
+                using (Serilog.Context.LogContext.PushProperty("ResponseBody", responseBody))
+                using (Serilog.Context.LogContext.PushProperty("ResponseHeaders", responseHeaders))
+                {
+                    _logger.Write(level, ex, _options.MessageTemplate);
+                }
             }
         }
     }
