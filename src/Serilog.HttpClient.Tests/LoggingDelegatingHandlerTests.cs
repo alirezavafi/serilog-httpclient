@@ -1,6 +1,4 @@
-using System.Collections.Immutable;
 using System.Net;
-using System.Net.Http;
 using System.Net.Http.Headers;
 using Moq;
 using Moq.Protected;
@@ -22,8 +20,8 @@ public class LoggingDelegatingHandlerTests
             StatusCode = HttpStatusCode.OK,
             Content = new StringContent("this is the response body"),
             Headers = {
-                    ETag = EntityTagHeaderValue.Any
-                }
+                ETag = EntityTagHeaderValue.Any
+            }
         });
 
         var client = createHttpClient(new RequestLoggingOptions
@@ -74,6 +72,63 @@ public class LoggingDelegatingHandlerTests
                 new Dictionary<string, string[]>()
                 {
                     { "ETag", new string[] {"*"} }
+                },
+                logEvent.Properties["ResponseHeaders"].LiteralValue()
+            );
+        }
+    }
+
+    [Fact]
+    public void Test_Log_Request_With_Masking()
+    {
+        mockResponse(new HttpResponseMessage
+        {
+            StatusCode = HttpStatusCode.OK,
+            Content = new StringContent("{\"Password\": false, \"Token\": \"abcdef\"}"),
+            Headers = {
+                WwwAuthenticate = { new AuthenticationHeaderValue("Bearer") }
+            }
+        });
+
+        var client = createHttpClient(new RequestLoggingOptions
+        {
+            ResponseBodyLogMode = LogMode.LogAll,
+            MaskedProperties = { "password", "token", "authorization", "*authenticate*" }
+        });
+
+        using (TestCorrelator.CreateContext())
+        {
+            client.SendAsync(new HttpRequestMessage
+            {
+                Method = HttpMethod.Post,
+                RequestUri = new Uri("https://example.com/path"),
+                Content = new StringContent("{\"Authorization\": 1234, \"Password\": \"xyz\"}"),
+                Headers = {
+                    Authorization = new AuthenticationHeaderValue("Bearer", "abcdef")
+                }
+            });
+
+            var logEvents = TestCorrelator.GetLogEventsFromCurrentContext();
+            Assert.Single(logEvents);
+
+            var logEvent = logEvents.First();
+
+            Assert.Contains("\"Authorization\":\"*** MASKED ***\"", (string)logEvent.Properties["RequestBodyString"].LiteralValue());
+            Assert.Contains("\"Password\":\"*** MASKED ***\"", (string)logEvent.Properties["RequestBodyString"].LiteralValue());
+            Assert.Equal(
+                new Dictionary<string, string[]>()
+                {
+                    { "Authorization", new string[] {"*** MASKED ***"} }
+                },
+                logEvent.Properties["RequestHeaders"].LiteralValue()
+            );
+
+            Assert.Contains("\"Password\":\"*** MASKED ***\"", (string)logEvent.Properties["ResponseBodyString"].LiteralValue());
+            Assert.Contains("\"Token\":\"*** MASKED ***\"", (string)logEvent.Properties["ResponseBodyString"].LiteralValue());
+            Assert.Equal(
+                new Dictionary<string, string[]>()
+                {
+                    { "WWW-Authenticate", new string[] {"*** MASKED ***"} }
                 },
                 logEvent.Properties["ResponseHeaders"].LiteralValue()
             );

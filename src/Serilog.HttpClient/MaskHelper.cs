@@ -22,7 +22,7 @@ namespace Serilog.HttpClient
         /// <param name="mask">Mask format</param>
         /// <returns></returns>
         /// <exception cref="ArgumentNullException"></exception>
-     public static string MaskFields(this string json, string[] blacklist, string mask)
+        public static string MaskFields(this string json, string[] blacklist, string mask)
         {
             if (string.IsNullOrWhiteSpace(json))
             {
@@ -52,7 +52,7 @@ namespace Serilog.HttpClient
                 MaskFieldsFromJToken(jObject, blacklist, mask);
             }
 
-            return jsonObject.ToString();
+            return JsonConvert.SerializeObject(jsonObject);
         }
 
         private static void MaskFieldsFromJToken(JToken token, string[] blacklist, string mask)
@@ -74,14 +74,14 @@ namespace Serilog.HttpClient
                     }
                 }
 
-                // call recursive 
+                // call recursive
                 MaskFieldsFromJToken(jtoken, blacklist, mask);
             }
 
-            // replace 
+            // replace
             foreach (JToken el in removeList)
             {
-                var prop = (JProperty) el;
+                var prop = (JProperty)el;
                 prop.Value = mask;
             }
         }
@@ -113,7 +113,7 @@ namespace Serilog.HttpClient
             string mask)
         {
             return keyValuePairs.Select(pair => IsMaskMatch(pair.Key, blacklist)
-                    ? new KeyValuePair<string, IEnumerable<string>>(pair.Key, new[] {mask} )
+                    ? new KeyValuePair<string, IEnumerable<string>>(pair.Key, new[] { mask })
                     : new KeyValuePair<string, IEnumerable<string>>(pair.Key, pair.Value))
                 .ToList();
         }
