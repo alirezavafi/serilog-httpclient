@@ -6,7 +6,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\Serilog.HttpClient\Serilog.HttpClient.csproj" />
       <ProjectReference Include="..\..\src\Serilog.HttpClient\Serilog.HttpClient.csproj" />
     </ItemGroup>
 
