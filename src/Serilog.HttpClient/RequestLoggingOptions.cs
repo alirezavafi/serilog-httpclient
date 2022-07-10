@@ -13,7 +13,7 @@ namespace Serilog.HttpClient
     public class RequestLoggingOptions
     {
         const string DefaultRequestCompletionMessageTemplate =
-            "HTTP Client Request Completed {@Context}";
+            "HTTP Client request {RequestMethod} {RequestUri} completed in {ElapsedMilliseconds:0.0000}ms";
 
         /// <summary>
         /// Gets or sets the message template. The default value is
@@ -28,7 +28,7 @@ namespace Serilog.HttpClient
         /// A function returning the <see cref="LogEventLevel"/> based on the <see cref="HttpRequestMessage"/>/<see cref="HttpResponseMessage"/> information,
         /// the number of elapsed milliseconds required for handling the request, and an <see cref="Exception" /> if one was thrown.
         /// The default behavior returns <see cref="LogEventLevel.Error"/> when the response status code is greater than 499 or if the
-        /// <see cref="Exception"/> is not null. Also default log level for 4xx range errors set to <see cref="LogEventLevel.Warning"/>   
+        /// <see cref="Exception"/> is not null. Also default log level for 4xx range errors set to <see cref="LogEventLevel.Warning"/>
         /// </summary>
         /// <value>
         /// A function returning the <see cref="LogEventLevel"/>.
@@ -65,7 +65,7 @@ namespace Serilog.HttpClient
         /// Properties to mask before logging to output to prevent sensitive data leakage
         /// </summary>
         public IList<string> MaskedProperties { get; } =
-            new List<string>() {"*password*", "*token*", "*clientsecret*", "*bearer*", "*authorization*", "*client-secret*","*otp"};
+            new List<string>() { "*password*", "*token*", "*clientsecret*", "*bearer*", "*authorization*", "*client-secret*", "*otp" };
         /// <summary>
         /// Mask format to replace with masked data
         /// </summary>
@@ -97,7 +97,7 @@ namespace Serilog.HttpClient
                 level = LogEventLevel.Error;
             else if ((int)resp.StatusCode >= 400)
                 level = LogEventLevel.Warning;
-            
+
             return level;
         }
     }
