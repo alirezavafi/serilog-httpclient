@@ -21,7 +21,12 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
+using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Serilog.Debugging;
+using Serilog.Events;
+using Serilog.HttpClient.Extensions;
 
 namespace Serilog.HttpClient
 {
@@ -30,10 +35,18 @@ namespace Serilog.HttpClient
         private readonly RequestLoggingOptions _options;
         private readonly ILogger _logger;
 
-        public LoggingDelegatingHandler(RequestLoggingOptions options)
+        public LoggingDelegatingHandler(
+            RequestLoggingOptions options,
+            HttpMessageHandler httpMessageHandler = default)
         {
             _options = options ?? throw new ArgumentNullException(nameof(options));
             _logger = options.Logger?.ForContext<LoggingDelegatingHandler>() ?? Serilog.Log.Logger.ForContext<LoggingDelegatingHandler>();
+
+#if NETCOREAPP3_1_OR_GREATER            
+            InnerHandler = httpMessageHandler ?? new SocketsHttpHandler();
+#else
+            InnerHandler = httpMessageHandler ?? new HttpClientHandler();
+#endif
         }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -72,25 +85,25 @@ namespace Serilog.HttpClient
             if (_options.LogMode == LogMode.LogAll ||
                 (!isRequestOk && _options.LogMode == LogMode.LogFailures))
             {
-                if (req.Content != null)
-                    requestBodyText = await req.Content.ReadAsStringAsync();
-                JsonDocument requestBody = null;
+                object requestBody = null;
                 if ((_options.RequestBodyLogMode == LogMode.LogAll ||
                      (!isRequestOk && _options.RequestBodyLogMode == LogMode.LogFailures)))
                 {
+                    if (req.Content != null)
+                        requestBodyText = await req.Content.ReadAsStringAsync();
                     if (!string.IsNullOrWhiteSpace(requestBodyText))
                     {
-                        try
+                        JToken token;
+                        if (requestBodyText.TryGetJToken(out token))
                         {
-                            requestBodyText = requestBodyText.MaskFields(_options.MaskedProperties.ToArray(),
+                            var jToken = token.MaskFields(_options.MaskedProperties.ToArray(),
                                 _options.MaskFormat);
+                            requestBodyText = jToken.ToString();
+                            requestBody = jToken;
                         }
-                        catch (Exception) { }
 
                         if (requestBodyText.Length > _options.RequestBodyLogTextLengthLimit)
                             requestBodyText = requestBodyText.Substring(0, _options.RequestBodyLogTextLengthLimit);
-                        else
-                            try { requestBody = System.Text.Json.JsonDocument.Parse(requestBodyText); } catch (Exception) { }
                     }
                 }
                 else
@@ -104,7 +117,7 @@ namespace Serilog.HttpClient
                 {
                     try
                     {
-                        var valuesByKey = req.Headers
+                        var valuesByKey = req.Headers.GetEnumerator()
                             .Mask(_options.MaskedProperties.ToArray(), _options.MaskFormat).GroupBy(x => x.Key);
                         foreach (var item in valuesByKey)
                         {
@@ -138,6 +151,19 @@ namespace Serilog.HttpClient
                     SelfLog.WriteLine("Cannot parse query string");
                 }
 
+                var requestData = new
+                {
+                    Method = req.Method,
+                    Scheme = req.RequestUri.Scheme,
+                    Host = req.RequestUri.Host,
+                    Path = req.RequestUri.AbsolutePath,
+                    QueryString = req.RequestUri.Query,
+                    Query = requestQuery,
+                    BodyString = requestBodyText,
+                    Body = requestBody,
+                    Header = requestHeaders,
+                };
+
                 object responseBody = null;
                 if ((_options.ResponseBodyLogMode == LogMode.LogAll ||
                      (!isRequestOk && _options.ResponseBodyLogMode == LogMode.LogFailures)))
@@ -146,17 +172,16 @@ namespace Serilog.HttpClient
                         responseBodyText = await resp?.Content.ReadAsStringAsync();
                     if (!string.IsNullOrWhiteSpace(responseBodyText))
                     {
-                        try
+                        JToken jToken;
+                        if (responseBodyText.TryGetJToken(out jToken))
                         {
-                            responseBodyText = responseBodyText.MaskFields(_options.MaskedProperties.ToArray(),
-                                _options.MaskFormat);
+                            jToken = jToken.MaskFields(_options.MaskedProperties.ToArray(), _options.MaskFormat);
+                            responseBodyText = jToken.ToString();
+                            responseBody = jToken;
                         }
-                        catch (Exception) { }
 
                         if (responseBodyText.Length > _options.ResponseBodyLogTextLengthLimit)
                             responseBodyText = responseBodyText.Substring(0, _options.ResponseBodyLogTextLengthLimit);
-                        else
-                            try { responseBody = System.Text.Json.JsonDocument.Parse(responseBodyText); } catch (Exception) { }
                     }
                 }
                 else
@@ -171,7 +196,7 @@ namespace Serilog.HttpClient
                 {
                     try
                     {
-                        var valuesByKey = resp.Headers
+                        var valuesByKey = resp.Headers.GetEnumerator()
                             .Mask(_options.MaskedProperties.ToArray(), _options.MaskFormat).GroupBy(x => x.Key);
                         foreach (var item in valuesByKey)
                         {
@@ -187,25 +212,21 @@ namespace Serilog.HttpClient
                     }
                 }
 
-                using (Serilog.Context.LogContext.PushProperty("RequestMethod", req.Method))
-                using (Serilog.Context.LogContext.PushProperty("RequestUri", req.RequestUri))
-                using (Serilog.Context.LogContext.PushProperty("RequestScheme", req.RequestUri.Scheme))
-                using (Serilog.Context.LogContext.PushProperty("RequestHost", req.RequestUri.Host))
-                using (Serilog.Context.LogContext.PushProperty("RequestPath", req.RequestUri.AbsolutePath))
-                using (Serilog.Context.LogContext.PushProperty("RequestQueryString", req.RequestUri.Query))
-                using (Serilog.Context.LogContext.PushProperty("RequestQuery", requestQuery))
-                using (Serilog.Context.LogContext.PushProperty("RequestBodyString", requestBodyText))
-                using (Serilog.Context.LogContext.PushProperty("RequestBody", requestBody, destructureObjects: true))
-                using (Serilog.Context.LogContext.PushProperty("RequestHeaders", requestHeaders))
-                using (Serilog.Context.LogContext.PushProperty("StatusCode", resp?.StatusCode.ToString()))
-                using (Serilog.Context.LogContext.PushProperty("IsSucceed", isRequestOk))
-                using (Serilog.Context.LogContext.PushProperty("ElapsedMilliseconds", elapsedMs))
-                using (Serilog.Context.LogContext.PushProperty("ResponseBodyString", responseBodyText))
-                using (Serilog.Context.LogContext.PushProperty("ResponseBody", responseBody, destructureObjects: true))
-                using (Serilog.Context.LogContext.PushProperty("ResponseHeaders", responseHeaders))
+                var responseData = new
                 {
-                    _logger.Write(level, ex, _options.MessageTemplate);
-                }
+                    StatusCode = (int?)resp?.StatusCode,
+                    IsSucceed = isRequestOk,
+                    ElapsedMilliseconds = elapsedMs,
+                    BodyString = responseBodyText,
+                    Body = responseBody,
+                    Header = responseHeaders,
+                };
+
+                _logger.Write(level, ex, _options.MessageTemplate, new
+                {
+                    Request = requestData,
+                    Response = responseData,
+                });
             }
         }
     }

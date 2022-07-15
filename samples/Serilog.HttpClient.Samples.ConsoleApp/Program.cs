@@ -4,8 +4,10 @@ using System.Net.Http.Json;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 using Serilog.Formatting.Json;
+using Serilog.HttpClient.Extensions;
+using Serilog.Sinks.SystemConsole.Themes;
 
-namespace Serilog.HttpClient.Samples.ConsoleApp
+namespace Serilog.HttpClient.Samples.ConsoleApp 
 {
     class Program
     {
@@ -13,6 +15,10 @@ namespace Serilog.HttpClient.Samples.ConsoleApp
         {
             Serilog.Log.Logger = new LoggerConfiguration()
                 .WriteTo.File(new JsonFormatter(),"log.json")
+                .WriteTo.Console(outputTemplate:
+                    "[{Timestamp:HH:mm:ss} {Level:u3}] {Message} {NewLine}{Properties} {NewLine}{Exception}{NewLine}",
+                    theme: SystemConsoleTheme.Literate)
+                .AddJsonDestructuringPolicies()
                 .CreateLogger();
 
             var loggingHandler = new LoggingDelegatingHandler(new RequestLoggingOptions()
@@ -21,8 +27,8 @@ namespace Serilog.HttpClient.Samples.ConsoleApp
                 RequestHeaderLogMode = LogMode.LogAll,
                 RequestBodyLogMode = LogMode.LogAll,
                 RequestBodyLogTextLengthLimit = 5000,
-                ResponseHeaderLogMode = LogMode.LogFailures,
-                ResponseBodyLogMode = LogMode.LogFailures,
+                ResponseHeaderLogMode = LogMode.LogAll,
+                ResponseBodyLogMode = LogMode.LogAll,
                 ResponseBodyLogTextLengthLimit = 5000,
                 MaskFormat = "*****",
                 MaskedProperties = {  "password", "token" },
