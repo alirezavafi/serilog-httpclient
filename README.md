@@ -2,8 +2,8 @@
 A logging handler for HttpClient:
 
 - Data masking for sensitive information
-- Captures request/response body controlled by response status and configuration
-- Captures request/response header controlled by response status and configuration
+- Captures request/response body based on response status and configuration
+- Captures request/response header based on response status and configuration
 - Request/response body size truncation for preventing performance penalties
 - Log levels based on response status code (Warning for status >= 400, Error for status >= 500)
 
@@ -13,6 +13,18 @@ A logging handler for HttpClient:
 
 ```shell
 dotnet add package Serilog.HttpClient
+```
+
+Add Json destructing policies using AddJsonDestructuringPolicies() when configuring LoggerConfiguration like below:
+
+```csharp
+Serilog.Log.Logger = new LoggerConfiguration()
+    .WriteTo.File(new JsonFormatter(),"log.json")
+    .WriteTo.Console(outputTemplate:
+        "[{Timestamp:HH:mm:ss} {Level:u3}] {Message} {NewLine}{Properties} {NewLine}{Exception}{NewLine}",
+        theme: SystemConsoleTheme.Literate)
+    .AddJsonDestructuringPolicies()
+    .CreateLogger();
 ```
 
 In your application's _Startup.cs_, add the middleware with `UseSerilogPlus()`:

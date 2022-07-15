@@ -12,16 +12,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Content Update="appsettings.Development.json">
-        <DependentUpon>appsettings.json</DependentUpon>
-      </Content>
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="App_Data\Logs" />
-    </ItemGroup>
-
-    <ItemGroup>
       <ProjectReference Include="..\..\src\Serilog.HttpClient\Serilog.HttpClient.csproj" />
     </ItemGroup>
 

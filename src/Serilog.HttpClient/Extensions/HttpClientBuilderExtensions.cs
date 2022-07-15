@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 
-namespace Serilog.HttpClient
+namespace Serilog.HttpClient.Extensions
 {
     public static class HttpClientBuilderExtensions
     {

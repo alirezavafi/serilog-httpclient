@@ -22,8 +22,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Serilog.Debugging;
 using Serilog.Events;
+using Serilog.HttpClient.Extensions;
 
 namespace Serilog.HttpClient
 {
@@ -39,7 +42,11 @@ namespace Serilog.HttpClient
             _options = options ?? throw new ArgumentNullException(nameof(options));
             _logger =  options.Logger?.ForContext<LoggingDelegatingHandler>() ?? Serilog.Log.Logger.ForContext<LoggingDelegatingHandler>();
 
+#if NETCOREAPP3_1_OR_GREATER            
+            InnerHandler = httpMessageHandler ?? new SocketsHttpHandler();
+#else
             InnerHandler = httpMessageHandler ?? new HttpClientHandler();
+#endif
         }
         
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -78,23 +85,25 @@ namespace Serilog.HttpClient
             if (_options.LogMode == LogMode.LogAll ||
                 (!isRequestOk && _options.LogMode == LogMode.LogFailures))
             {
-                if (req.Content != null)
-                    requestBodyText = await req.Content.ReadAsStringAsync();
-                JsonDocument requestBody = null;
+                object requestBody = null;
                 if ((_options.RequestBodyLogMode == LogMode.LogAll ||
                      (!isRequestOk && _options.RequestBodyLogMode == LogMode.LogFailures)))
                 {
+                    if (req.Content != null)
+                        requestBodyText = await req.Content.ReadAsStringAsync();
                     if (!string.IsNullOrWhiteSpace(requestBodyText))
                     {
-                        try { 
-                            requestBodyText = requestBodyText.MaskFields(_options.MaskedProperties.ToArray(),
+                        JToken token;
+                        if (requestBodyText.TryGetJToken(out token))
+                        {
+                            var jToken = token.MaskFields(_options.MaskedProperties.ToArray(),
                                 _options.MaskFormat);
-                        } catch (Exception) { }
+                            requestBodyText = jToken.ToString();
+                            requestBody = jToken;
+                        }
 
                         if (requestBodyText.Length > _options.RequestBodyLogTextLengthLimit)
                             requestBodyText = requestBodyText.Substring(0, _options.RequestBodyLogTextLengthLimit);
-                        else
-                            try { requestBody = System.Text.Json.JsonDocument.Parse(requestBodyText); }catch (Exception) { }
                     }
                 }
                 else
@@ -108,7 +117,7 @@ namespace Serilog.HttpClient
                 {
                     try
                     {
-                        var valuesByKey = req.Headers
+                        var valuesByKey = req.Headers.GetEnumerator()
                             .Mask(_options.MaskedProperties.ToArray(), _options.MaskFormat).GroupBy(x => x.Key);
                         foreach (var item in valuesByKey)
                         {
@@ -155,7 +164,7 @@ namespace Serilog.HttpClient
                     Header = requestHeader,
                 };
 
-                object responseBody = null;
+                dynamic responseBody = null;
                 if ((_options.ResponseBodyLogMode == LogMode.LogAll ||
                      (!isRequestOk && _options.ResponseBodyLogMode == LogMode.LogFailures)))
                 {
@@ -163,15 +172,16 @@ namespace Serilog.HttpClient
                         responseBodyText = await resp?.Content.ReadAsStringAsync();
                     if (!string.IsNullOrWhiteSpace(responseBodyText))
                     {
-                        try {
-                            responseBodyText = responseBodyText.MaskFields(_options.MaskedProperties.ToArray(),
-                                _options.MaskFormat);
-                        } catch (Exception) { }
+                        JToken jToken;
+                        if (responseBodyText.TryGetJToken(out jToken))
+                        {
+                            jToken = jToken.MaskFields(_options.MaskedProperties.ToArray(), _options.MaskFormat);
+                            responseBodyText = jToken.ToString();
+                            responseBody = jToken;
+                        }
 
                         if (responseBodyText.Length > _options.ResponseBodyLogTextLengthLimit)
                             responseBodyText = responseBodyText.Substring(0, _options.ResponseBodyLogTextLengthLimit);
-                        else
-                            try { responseBody = System.Text.Json.JsonDocument.Parse(responseBodyText); }catch (Exception) { }
                     }
                 }
                 else
@@ -187,7 +197,7 @@ namespace Serilog.HttpClient
 
                     try
                     {
-                        var valuesByKey = resp.Headers
+                        var valuesByKey = resp.Headers.GetEnumerator()
                             .Mask(_options.MaskedProperties.ToArray(), _options.MaskFormat).GroupBy(x => x.Key);
                         foreach (var item in valuesByKey)
                         {

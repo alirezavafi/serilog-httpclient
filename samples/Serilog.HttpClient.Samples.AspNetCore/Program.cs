@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog.Formatting.Compact;
+using Serilog.HttpClient.Extensions;
 
 namespace Serilog.HttpClient.Samples.AspNetCore
 {
@@ -19,7 +20,10 @@ namespace Serilog.HttpClient.Samples.AspNetCore
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
-                .UseSerilogPlus(p => p.WriteTo.File(new CompactJsonFormatter(),"App_Data/Logs/log.json"))
+                .UseSerilogPlus(p =>
+                {
+                    p.WriteTo.File(new CompactJsonFormatter(), "App_Data/Logs/log.json");
+                })
                 .ConfigureWebHostDefaults(webBuilder => { webBuilder.UseStartup<Startup>(); });
     }
 }

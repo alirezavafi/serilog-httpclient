@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 
-namespace Serilog.HttpClient
+namespace Serilog.HttpClient.Extensions
 {
     /// <summary>
     /// LogContext extensions for pushing multiple properties

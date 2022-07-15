@@ -8,7 +8,7 @@ using Serilog.Events;
 namespace Serilog.HttpClient
 {
     /// <summary>
-    /// Contains options for the <see cref="RequestLoggingMiddleware"/>.
+    /// Contains options for the <see cref="LoggingDelegatingHandler"/>.
     /// </summary>
     public class RequestLoggingOptions
     {
