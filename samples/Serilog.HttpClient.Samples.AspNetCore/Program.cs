@@ -22,6 +22,7 @@ namespace Serilog.HttpClient.Samples.AspNetCore
             Host.CreateDefaultBuilder(args)
                 .UseSerilogPlus(p =>
                 {
+                    p.WriteTo.Console();
                     p.WriteTo.File(new CompactJsonFormatter(), "App_Data/Logs/log.json");
                 })
                 .ConfigureWebHostDefaults(webBuilder => { webBuilder.UseStartup<Startup>(); });

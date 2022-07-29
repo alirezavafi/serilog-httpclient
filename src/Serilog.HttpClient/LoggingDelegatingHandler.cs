@@ -37,16 +37,23 @@ namespace Serilog.HttpClient
 
         public LoggingDelegatingHandler(
             RequestLoggingOptions options,
-            HttpMessageHandler httpMessageHandler = default)
+            HttpMessageHandler httpMessageHandler = default, bool forHttpClientFactory = false)
         {
             _options = options ?? throw new ArgumentNullException(nameof(options));
             _logger = options.Logger?.ForContext<LoggingDelegatingHandler>() ?? Serilog.Log.Logger.ForContext<LoggingDelegatingHandler>();
 
-#if NETCOREAPP3_1_OR_GREATER            
-            InnerHandler = httpMessageHandler ?? new SocketsHttpHandler();
+#if NETCOREAPP3_1_OR_GREATER
+            if (!forHttpClientFactory)
+            {
+               InnerHandler = httpMessageHandler ?? new SocketsHttpHandler();
+            }
 #else
-            InnerHandler = httpMessageHandler ?? new HttpClientHandler();
+            if (!forHttpClientFactory)
+            {
+                InnerHandler = httpMessageHandler ?? new HttpClientHandler();
+            }
 #endif
+            
         }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
