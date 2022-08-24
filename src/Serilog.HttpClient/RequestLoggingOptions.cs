@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Net.Http;
 using Serilog.Events;
+using Serilog.HttpClient;
+using Serilog.HttpClient.Models;
 
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 
@@ -12,18 +14,13 @@ namespace Serilog.HttpClient
     /// </summary>
     public class RequestLoggingOptions
     {
-        const string DefaultRequestCompletionMessageTemplate =
-            "HTTP Client Request Completed {@Context}";
-
         /// <summary>
-        /// Gets or sets the message template. The default value is
-        /// <c>"HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms"</c>.
+        /// A function returning the <see cref="LogEntryParameters"/> based on the <see cref="HttpClientContext"/> information,
+        /// default behavior is logging message with template "HTTP Client {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms"
+        /// and attaching HTTP contextual data <see cref="HttpClientContext"/> as property named "Context"
         /// </summary>
-        /// <value>
-        /// The message template.
-        /// </value>
-        public string MessageTemplate { get; set; }
-
+        public Func<HttpClientContext, LogEntryParameters> GetLogMessageAndProperties { get; set; }
+        
         /// <summary>
         /// A function returning the <see cref="LogEventLevel"/> based on the <see cref="HttpRequestMessage"/>/<see cref="HttpResponseMessage"/> information,
         /// the number of elapsed milliseconds required for handling the request, and an <see cref="Exception" /> if one was thrown.
@@ -40,6 +37,7 @@ namespace Serilog.HttpClient
         /// static <see cref="Log"/> class.
         /// </summary>
         public ILogger Logger { get; set; }
+        
         /// <summary>
         /// Determines when logging requests information. Default is true.
         /// </summary>
@@ -49,31 +47,48 @@ namespace Serilog.HttpClient
         /// Determines when logging request headers
         /// </summary>
         public LogMode RequestHeaderLogMode { get; set; } = LogMode.LogAll;
+        
         /// <summary>
         /// Determines when logging request body data
         /// </summary>
         public LogMode RequestBodyLogMode { get; set; } = LogMode.LogAll;
+        
+        /// <summary>
+        /// Determines weather to log request as structured object instead of string. This is useful when you use Elastic, Splunk or any other platform to search on object properties. Default is true. Masking only works when this options is enabled.
+        /// </summary>
+        public bool LogRequestBodyAsStructuredObject { get; set; } = true;
+        
         /// <summary>
         /// Determines when logging response headers
         /// </summary>
         public LogMode ResponseHeaderLogMode { get; set; } = LogMode.LogAll;
+        
         /// <summary>
         /// Determines when logging response body data
         /// </summary>
         public LogMode ResponseBodyLogMode { get; set; } = LogMode.LogFailures;
+        
         /// <summary>
-        /// Properties to mask before logging to output to prevent sensitive data leakage
+        /// Determines weather to log response as structured object instead of string. This is useful when you use Elastic, Splunk or any other platform to search on object properties. Default is true. Masking only works when this options is enabled.
         /// </summary>
-        public IList<string> MaskedProperties { get; } =
-            new List<string>() {"*password*", "*token*", "*clientsecret*", "*bearer*", "*authorization*", "*client-secret*","*otp"};
+        public bool LogResponseBodyAsStructuredObject { get; set; } = true;
+        
+        /// <summary>
+        /// Properties to mask request/response body and headers before logging to output to prevent sensitive data leakage
+        /// default is "*password*", "*token*", "*secret*", "*bearer*", "*authorization*","*otp"
+        /// </summary>
+        public IList<string> MaskedProperties { get; } = new List<string>() {"*password*", "*token*", "*secret*", "*bearer*", "*authorization*","*otp"};
+        
         /// <summary>
         /// Mask format to replace with masked data
         /// </summary>
         public string MaskFormat { get; set; } = "*** MASKED ***";
+        
         /// <summary>
         /// Maximum allowed length of response body text to capture in logs
         /// </summary>
         public int ResponseBodyLogTextLengthLimit { get; set; } = 4000;
+        
         /// <summary>
         /// Maximum allowed length of request body text to capture in logs
         /// </summary>
@@ -84,11 +99,11 @@ namespace Serilog.HttpClient
         /// </summary>
         public RequestLoggingOptions()
         {
-            MessageTemplate = DefaultRequestCompletionMessageTemplate;
             GetLevel = DefaultGetLevel;
+            GetLogMessageAndProperties = DefaultLogMessageAndProperties;
         }
 
-        static LogEventLevel DefaultGetLevel(HttpRequestMessage req, HttpResponseMessage resp, double elapsedMs, Exception ex)
+        private static LogEventLevel DefaultGetLevel(HttpRequestMessage req, HttpResponseMessage resp, double elapsedMs, Exception ex)
         {
             var level = LogEventLevel.Information;
             if (ex != null || resp == null)
@@ -99,6 +114,16 @@ namespace Serilog.HttpClient
                 level = LogEventLevel.Warning;
             
             return level;
+        }
+        
+        private static LogEntryParameters DefaultLogMessageAndProperties(HttpClientContext h)
+        {
+            return new LogEntryParameters()
+            {
+                MessageTemplate = "HTTP Client {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms",
+                MessageParameters = new object[]{ h.Request.Method, h.Request.Path, h.Response.StatusCode, h.Response.ElapsedMilliseconds, h},
+                AdditionalProperties = { ["Context"] = h }
+            };
         }
     }
 }

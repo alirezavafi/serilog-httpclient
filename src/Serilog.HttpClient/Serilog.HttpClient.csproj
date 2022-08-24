@@ -7,7 +7,7 @@
         <Authors>Alireza Vafi</Authors>
         <PackageProjectUrl>https://github.com/alirezavafi/serilog-httpclient</PackageProjectUrl>
         <RepositoryUrl>https://github.com/alirezavafi/serilog-httpclient</RepositoryUrl>
-        <PackageVersion>1.1</PackageVersion>
+        <PackageVersion>2.0</PackageVersion>
     </PropertyGroup>
     <ItemGroup>
         <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
