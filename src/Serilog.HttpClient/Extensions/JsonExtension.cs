@@ -7,7 +7,7 @@ using Newtonsoft.Json.Linq;
 
 namespace Serilog.HttpClient.Extensions
 {
-    internal static class JsonExtension
+    public static class JsonExtension
     {
         public static bool TryGetJToken(this string text, out JToken jToken)
         {

@@ -179,7 +179,7 @@ namespace Serilog.HttpClient
                 {
                     if (resp?.Content != null)
                         responseBodyText = await resp?.Content.ReadAsStringAsync();
-                    if (_options.LogResponseBodyAsStructuredObject &&!string.IsNullOrWhiteSpace(responseBodyText))
+                    if (_options.LogResponseBodyAsStructuredObject && !string.IsNullOrWhiteSpace(responseBodyText))
                     {
                         JToken jToken;
                         if (responseBodyText.TryGetJToken(out jToken))

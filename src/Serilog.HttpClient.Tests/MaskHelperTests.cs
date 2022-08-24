@@ -4,7 +4,9 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using Moq;
 using Moq.Protected;
+using Newtonsoft.Json.Linq;
 using Serilog.Events;
+using Serilog.HttpClient.Extensions;
 using Serilog.HttpClient.Tests.Support;
 using Serilog.Sinks.TestCorrelator;
 
@@ -18,13 +20,16 @@ public class MaskHelperTests
         var blacklist = new string[] { "*token*" };
         var mask = "*MASK*";
 
-        var result = "{\"token\": \"abc\"}".MaskFields(blacklist, mask);
+        "{\"token\": \"abc\"}".TryGetJToken(out JToken jToken);
+        var result = jToken.MaskFields(blacklist, mask).ToString().Replace("\r\n", string.Empty).Replace(" ", string.Empty);
         Assert.Equal("{\"token\":\"*MASK*\"}", result);
 
-        result = "[{\"token\": \"abc\"}]".MaskFields(blacklist, mask);
+        "[{\"token\": \"abc\"}]".TryGetJToken(out jToken);
+        result = jToken.MaskFields(blacklist, mask).ToString().Replace("\r\n", string.Empty).Replace(" ", string.Empty);
         Assert.Equal("[{\"token\":\"*MASK*\"}]", result);
 
-        result = "{\"nested\": {\"token\": \"abc\"}}".MaskFields(blacklist, mask);
+        "{\"nested\": {\"token\": \"abc\"}}".TryGetJToken(out jToken);
+        result = jToken.MaskFields(blacklist, mask).ToString().Replace("\r\n", string.Empty).Replace(" ", string.Empty);
         Assert.Equal("{\"nested\":{\"token\":\"*MASK*\"}}", result);
     }
 }
