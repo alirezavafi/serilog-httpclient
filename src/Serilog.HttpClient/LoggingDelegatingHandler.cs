@@ -24,9 +24,11 @@ using System.Web;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Serilog.Context;
 using Serilog.Debugging;
 using Serilog.Events;
 using Serilog.HttpClient.Extensions;
+using Serilog.HttpClient.Models;
 
 namespace Serilog.HttpClient
 {
@@ -98,7 +100,7 @@ namespace Serilog.HttpClient
                 {
                     if (req.Content != null)
                         requestBodyText = await req.Content.ReadAsStringAsync();
-                    if (!string.IsNullOrWhiteSpace(requestBodyText))
+                    if (_options.LogRequestBodyAsStructuredObject && !string.IsNullOrWhiteSpace(requestBodyText))
                     {
                         JToken token;
                         if (requestBodyText.TryGetJToken(out token))
@@ -125,13 +127,13 @@ namespace Serilog.HttpClient
                     try
                     {
                         var valuesByKey = req.Headers.GetEnumerator()
-                            .Mask(_options.MaskedProperties.ToArray(), _options.MaskFormat).GroupBy(x => x.Key);
+                            .Mask(_options.MaskedProperties.ToArray(), _options.MaskFormat);
                         foreach (var item in valuesByKey)
                         {
-                            if (item.Count() > 1)
-                                requestHeaders.Add(item.Key, item.SelectMany(x => x.Value));
+                            if (item.Value.Count() > 1)
+                                requestHeaders.Add(item.Key, item.Value);
                             else
-                                requestHeaders.Add(item.Key, item.First().Value);
+                                requestHeaders.Add(item.Key, item.Value.First());
                         }
                     }
                     catch (Exception headerParseException)
@@ -158,17 +160,17 @@ namespace Serilog.HttpClient
                     SelfLog.WriteLine("Cannot parse query string");
                 }
 
-                var requestData = new
+                var requestData = new HttpRequestInfo
                 {
-                    Method = req.Method,
-                    Scheme = req.RequestUri.Scheme,
+                    Method = req.Method?.Method,
+                    Scheme = req.RequestUri.Scheme, 
                     Host = req.RequestUri.Host,
                     Path = req.RequestUri.AbsolutePath,
                     QueryString = req.RequestUri.Query,
                     Query = requestQuery,
                     BodyString = requestBodyText,
                     Body = requestBody,
-                    Header = requestHeaders,
+                    Headers = requestHeaders
                 };
 
                 object responseBody = null;
@@ -177,7 +179,7 @@ namespace Serilog.HttpClient
                 {
                     if (resp?.Content != null)
                         responseBodyText = await resp?.Content.ReadAsStringAsync();
-                    if (!string.IsNullOrWhiteSpace(responseBodyText))
+                    if (_options.LogResponseBodyAsStructuredObject &&!string.IsNullOrWhiteSpace(responseBodyText))
                     {
                         JToken jToken;
                         if (responseBodyText.TryGetJToken(out jToken))
@@ -204,13 +206,13 @@ namespace Serilog.HttpClient
                     try
                     {
                         var valuesByKey = resp.Headers.GetEnumerator()
-                            .Mask(_options.MaskedProperties.ToArray(), _options.MaskFormat).GroupBy(x => x.Key);
+                            .Mask(_options.MaskedProperties.ToArray(), _options.MaskFormat);
                         foreach (var item in valuesByKey)
                         {
-                            if (item.Count() > 1)
-                                responseHeaders.Add(item.Key, item.SelectMany(x => x.Value));
+                            if (item.Value.Count() > 1)
+                                responseHeaders.Add(item.Key, item.Value);
                             else
-                                responseHeaders.Add(item.Key, item.First().Value);
+                                responseHeaders.Add(item.Key, item.Value.First());
                         }
                     }
                     catch (Exception headerParseException)
@@ -219,21 +221,27 @@ namespace Serilog.HttpClient
                     }
                 }
 
-                var responseData = new
+                var responseData = new HttpResponseInfo
                 {
-                    StatusCode = (int?)resp?.StatusCode,
-                    IsSucceed = isRequestOk,
+                    StatusCode = (int?)resp?.StatusCode, 
+                    IsSucceed = isRequestOk, 
                     ElapsedMilliseconds = elapsedMs,
                     BodyString = responseBodyText,
                     Body = responseBody,
-                    Header = responseHeaders,
+                    Headers = responseHeaders
                 };
-
-                _logger.Write(level, ex, _options.MessageTemplate, new
+                
+                var httpClientContext = new HttpClientContext { Request = requestData, Response = responseData };
+                var messageOptions = _options.GetLogMessageAndProperties(httpClientContext);
+                var contextLogger = _logger;
+                if (messageOptions.AdditionalProperties != null)
                 {
-                    Request = requestData,
-                    Response = responseData,
-                });
+                    foreach (var p in messageOptions.AdditionalProperties)
+                    {
+                        contextLogger = contextLogger.ForContext(p.Key, p.Value, true);
+                    }
+                }
+                contextLogger.Write(level, ex, messageOptions.MessageTemplate, messageOptions.MessageParameters);
             }
         }
     }

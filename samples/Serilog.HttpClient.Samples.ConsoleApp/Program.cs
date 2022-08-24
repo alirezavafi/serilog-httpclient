@@ -14,11 +14,12 @@ namespace Serilog.HttpClient.Samples.ConsoleApp
         static void Main(string[] args)
         {
             Serilog.Log.Logger = new LoggerConfiguration()
-                .WriteTo.File(new JsonFormatter(),"log.json")
+                .WriteTo.File(new JsonFormatter(),$"log-{DateTime.Now:yyyyMMdd-HHmmss}.json")
                 .WriteTo.Console(outputTemplate:
                     "[{Timestamp:HH:mm:ss} {Level:u3}] {Message} {NewLine}{Properties} {NewLine}{Exception}{NewLine}",
                     theme: SystemConsoleTheme.Literate)
                 .AddJsonDestructuringPolicies()
+                .Enrich.FromLogContext()
                 .CreateLogger();
 
             var loggingHandler = new LoggingDelegatingHandler(new RequestLoggingOptions()
