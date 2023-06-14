@@ -13,6 +13,8 @@ namespace Serilog.HttpClient.Samples.ConsoleApp
     {
         static void Main(string[] args)
         {
+            Serilog.Debugging.SelfLog.Enable(Console.Error);
+
             Serilog.Log.Logger = new LoggerConfiguration()
                 .WriteTo.File(new JsonFormatter(),$"log-{DateTime.Now:yyyyMMdd-HHmmss}.json")
                 .WriteTo.Console(outputTemplate:
