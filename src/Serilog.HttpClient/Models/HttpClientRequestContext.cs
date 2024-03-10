@@ -6,8 +6,13 @@ namespace Serilog.HttpClient.Models
     /// <summary>
     /// HTTP request information
     /// </summary>
-    public class HttpRequestInfo
+    public class HttpClientRequestContext
     {
+        /// <summary>
+        /// Url of request, for example https://test.com/rls?query=2
+        /// </summary>
+        public string Url { get; set; }
+        
         /// <summary>
         /// HTTP method like GET, POST, ...
         /// </summary>

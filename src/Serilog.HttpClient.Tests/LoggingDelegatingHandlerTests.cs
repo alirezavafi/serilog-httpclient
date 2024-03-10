@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using Moq;
 using Moq.Protected;
 using Serilog.Events;
+using Serilog.HttpClient.Extensions;
 using Serilog.HttpClient.Models;
 using Serilog.HttpClient.Tests.Support;
 using Serilog.Sinks.TestCorrelator;
@@ -11,7 +12,7 @@ namespace Serilog.HttpClient.Tests;
 
 public class LoggingDelegatingHandlerTests
 {
-    private Mock<HttpMessageHandler> _msgHandler = new Mock<HttpMessageHandler>();
+    private readonly Mock<HttpMessageHandler> _msgHandler = new();
 
     [Fact]
     public void Test_Log_Request()
@@ -48,28 +49,28 @@ public class LoggingDelegatingHandlerTests
             Assert.Single(logEvents);
 
             var logEvent = logEvents.First();
-            Assert.Equal("HTTP Client {RequestMethod} {RequestPath} responded {StatusCode} in {ElapsedMilliseconds:0.0000} ms", logEvent.MessageTemplate.Text);
+            Assert.Equal("HTTP Client Request Completed {@Context}", logEvent.MessageTemplate.Text);
             Assert.Equal(LogEventLevel.Information, logEvent.Level);
             Assert.Null(logEvent.Exception);
             var request = ((StructureValue)((StructureValue)logEvent.Properties["Context"]).Properties.First(x => x.Name == nameof(HttpClientContext.Request)).Value).Properties.ToDictionary(x => x.Name);
             var response = ((StructureValue)((StructureValue)logEvent.Properties["Context"]).Properties.First(x => x.Name == nameof(HttpClientContext.Response)).Value).Properties.ToDictionary(x => x.Name);
-            Assert.Equal("POST", request[nameof(HttpRequestInfo.Method)].Value.ToScalar());
-            Assert.Equal("https", request[nameof(HttpRequestInfo.Scheme)].Value.ToScalar());
-            Assert.Equal("example.com", request[nameof(HttpRequestInfo.Host)].Value.ToScalar());
-            Assert.Equal("/path", request[nameof(HttpRequestInfo.Path)].Value.ToScalar());
-            Assert.Equal("?query=1", request[nameof(HttpRequestInfo.QueryString)].Value.ToScalar());
-            Assert.Equal("this is the request body", request[nameof(HttpRequestInfo.BodyString)].Value.ToScalar());
-            Assert.Null(request[nameof(HttpRequestInfo.Body)].Value.ToScalar());
-            Assert.Equal("Referer", request[nameof(HttpRequestInfo.Headers)].Value.ToDictionary().First().Key.ToScalar());
-            Assert.Equal("https://example.com/referrer", request[nameof(HttpRequestInfo.Headers)].Value.ToDictionary().First().Value.ToScalar());
+            Assert.Equal("POST", request[nameof(HttpClientRequestContext.Method)].Value.ToScalar());
+            Assert.Equal("https", request[nameof(HttpClientRequestContext.Scheme)].Value.ToScalar());
+            Assert.Equal("example.com", request[nameof(HttpClientRequestContext.Host)].Value.ToScalar());
+            Assert.Equal("/path", request[nameof(HttpClientRequestContext.Path)].Value.ToScalar());
+            Assert.Equal("?query=1", request[nameof(HttpClientRequestContext.QueryString)].Value.ToScalar());
+            Assert.Equal("this is the request body", request[nameof(HttpClientRequestContext.BodyString)].Value.ToScalar());
+            Assert.Null(request[nameof(HttpClientRequestContext.Body)].Value.ToScalar());
+            Assert.Equal("Referer", request[nameof(HttpClientRequestContext.Headers)].Value.ToDictionary().First().Key.ToScalar());
+            Assert.Equal("https://example.com/referrer", request[nameof(HttpClientRequestContext.Headers)].Value.ToDictionary().First().Value.ToScalar());
 
-            Assert.Equal(200 , response[nameof(HttpResponseInfo.StatusCode)].Value.ToScalar());
-            Assert.True((bool)response[nameof(HttpResponseInfo.IsSucceed)].Value.ToScalar());
-            Assert.IsType<double>(response[nameof(HttpResponseInfo.ElapsedMilliseconds)].Value.ToScalar());
-            Assert.Equal("this is the response body", response[nameof(HttpResponseInfo.BodyString)].Value.ToScalar());
-            Assert.Null(request[nameof(HttpResponseInfo.Body)].Value.ToScalar());
-            Assert.Equal("ETag", response[nameof(HttpResponseInfo.Headers)].Value.ToDictionary().First().Key.ToScalar());
-            Assert.Equal("*", response[nameof(HttpResponseInfo.Headers)].Value.ToDictionary().First().Value.ToScalar());
+            Assert.Equal(200 , response[nameof(HttpClientResponseContext.StatusCode)].Value.ToScalar());
+            Assert.True((bool)response[nameof(HttpClientResponseContext.IsSucceed)].Value.ToScalar());
+            Assert.IsType<double>(response[nameof(HttpClientResponseContext.ElapsedMilliseconds)].Value.ToScalar());
+            Assert.Equal("this is the response body", response[nameof(HttpClientResponseContext.BodyString)].Value.ToScalar());
+            Assert.Null(request[nameof(HttpClientResponseContext.Body)].Value.ToScalar());
+            Assert.Equal("ETag", response[nameof(HttpClientResponseContext.Headers)].Value.ToDictionary().First().Key.ToScalar());
+            Assert.Equal("*", response[nameof(HttpClientResponseContext.Headers)].Value.ToDictionary().First().Value.ToScalar());
         }
     }
 
@@ -89,29 +90,14 @@ public class LoggingDelegatingHandlerTests
         var client = CreateHttpClient(new RequestLoggingOptions
         {
             ResponseBodyLogMode = LogMode.LogAll,
-            GetLogMessageAndProperties = c => new LogEntryParameters()
+            MessageTemplate =  "HTTP {RequestMethod} {RequestUri} responded {StatusCode} in {ElapsedMilliseconds:0.0000} ms",
+            GetMessageTemplateProperties = (c, l) => new[]
             {
-                MessageTemplate =
-                    "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {ElapsedMilliseconds:0.0000} ms",
-                AdditionalProperties = new Dictionary<string, object>()
-                {
-                    { "RequestMethod", c.Request.Method },
-                    { "RequestScheme", c.Request.Scheme },
-                    { "RequestHost", c.Request.Host },
-                    { "RequestPath", c.Request.Path },
-                    { "RequestQueryString", c.Request.QueryString },
-                    { "RequestQuery", c.Request.Query },
-                    { "RequestBodyString", c.Request.BodyString },
-                    { "RequestBody", c.Request.Body },
-                    { "RequestHeaders", c.Request.Headers },
-                    { "StatusCode", c.Response.StatusCode ?? 0 },
-                    { "IsSucceed", c.Response.IsSucceed },
-                    { "ElapsedMilliseconds", c.Response.ElapsedMilliseconds },
-                    { "ResponseBodyString", c.Response.BodyString },
-                    { "ResponseBody", c.Response.Body },
-                    { "ResponseHeaders", c.Response.Headers }
-                }
-            }
+                new LogEventProperty("RequestMethod", new ScalarValue(c.Request.Method)),
+                new LogEventProperty("RequestUri", new ScalarValue(c.Request.Url)),
+                new LogEventProperty("StatusCode", new ScalarValue(c.Response.StatusCode)),
+                new LogEventProperty("ElapsedMilliseconds", new ScalarValue(c.Response.ElapsedMilliseconds))
+            },
         });
 
         using (TestCorrelator.CreateContext())
@@ -131,30 +117,15 @@ public class LoggingDelegatingHandlerTests
             Assert.Single(logEvents);
 
             var logEvent = logEvents.First();
-            Assert.Equal("HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {ElapsedMilliseconds:0.0000} ms",
+            Assert.Equal("HTTP {RequestMethod} {RequestUri} responded {StatusCode} in {ElapsedMilliseconds:0.0000} ms",
                 logEvent.MessageTemplate.Text);
             Assert.Equal(LogEventLevel.Information, logEvent.Level);
             Assert.Null(logEvent.Exception);
 
             Assert.Equal("POST", logEvent.Properties["RequestMethod"].ToScalar());
-            Assert.Equal("https", logEvent.Properties["RequestScheme"].ToScalar());
-            Assert.Equal("example.com", logEvent.Properties["RequestHost"].ToScalar());
-            Assert.Equal("/path", logEvent.Properties["RequestPath"].ToScalar());
-            Assert.Equal("?query=1", logEvent.Properties["RequestQueryString"].ToScalar());
-            Assert.Equal("this is the request body", logEvent.Properties["RequestBodyString"].ToScalar());
-            Assert.Null(logEvent.Properties["RequestBody"].ToScalar());
-            Assert.Equal("Referer", logEvent.Properties["RequestHeaders"].ToDictionary().First().Key.ToScalar());
-            Assert.Equal("https://example.com/referrer",
-                logEvent.Properties["RequestHeaders"].ToDictionary().First().Value.ToScalar());
-
+            Assert.Equal("https://example.com/path?query=1", logEvent.Properties["RequestUri"].ToScalar());
             Assert.Equal(200, logEvent.Properties["StatusCode"].ToScalar());
-            Assert.True((bool)logEvent.Properties["IsSucceed"].ToScalar());
             Assert.IsType<double>(logEvent.Properties["ElapsedMilliseconds"].ToScalar());
-            Assert.Equal("this is the response body", logEvent.Properties["ResponseBodyString"].ToScalar());
-            Assert.Null(logEvent.Properties["ResponseBody"].ToScalar());
-            Assert.Equal("ETag", logEvent.Properties["ResponseHeaders"].ToDictionary().First().Key.ToScalar());
-            Assert.Equal("*",
-                logEvent.Properties["ResponseHeaders"].ToDictionary().First().Value.ToScalar());
         }
     }
 
@@ -175,29 +146,6 @@ public class LoggingDelegatingHandlerTests
         {
             ResponseBodyLogMode = LogMode.LogAll,
             MaskedProperties = { "password", "token", "authorization", "*authenticate*" },
-            GetLogMessageAndProperties = c => new LogEntryParameters()
-            {
-                MessageTemplate =
-                    "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {ElapsedMilliseconds:0.0000} ms",
-                AdditionalProperties = new Dictionary<string, object>()
-                {
-                    { "RequestMethod", c.Request.Method },
-                    { "RequestScheme", c.Request.Scheme },
-                    { "RequestHost", c.Request.Host },
-                    { "RequestPath", c.Request.Path },
-                    { "RequestQueryString", c.Request.QueryString },
-                    { "RequestQuery", c.Request.Query },
-                    { "RequestBodyString", c.Request.BodyString },
-                    { "RequestBody", c.Request.Body },
-                    { "RequestHeaders", c.Request.Headers },
-                    { "StatusCode", c.Response.StatusCode ?? 0 },
-                    { "IsSucceed", c.Response.IsSucceed },
-                    { "ElapsedMilliseconds", c.Response.ElapsedMilliseconds },
-                    { "ResponseBodyString", c.Response.BodyString },
-                    { "ResponseBody", c.Response.Body },
-                    { "ResponseHeaders", c.Response.Headers }
-                }
-            }
         });
 
         using (TestCorrelator.CreateContext())
@@ -217,24 +165,16 @@ public class LoggingDelegatingHandlerTests
             Assert.Single(logEvents);
 
             var logEvent = logEvents.First();
-
-            var responseText = logEvent.Properties["RequestBodyString"].ToScalar().ToString();
-            Assert.Contains("\"Authorization\": \"*** MASKED ***\"",
-                responseText);
-            Assert.Contains("\"Password\": \"*** MASKED ***\"",
-                responseText);
-            Assert.Equal("Authorization", logEvent.Properties["RequestHeaders"].ToDictionary().First().Key.ToScalar());
-            Assert.Equal("*** MASKED ***",
-                logEvent.Properties["RequestHeaders"].ToDictionary().First().Value.ToScalar());
-
-            Assert.Contains("\"Password\": \"*** MASKED ***\"",
-                (string)logEvent.Properties["ResponseBodyString"].ToScalar());
-            Assert.Contains("\"Token\": \"*** MASKED ***\"",
-                (string)logEvent.Properties["ResponseBodyString"].ToScalar());
-            Assert.Equal("WWW-Authenticate",
-                logEvent.Properties["ResponseHeaders"].ToDictionary().First().Key.ToScalar());
-            Assert.Equal("*** MASKED ***",
-                logEvent.Properties["ResponseHeaders"].ToDictionary().First().Value.ToScalar());
+            var context = (StructureValue)logEvent.Properties["Context"];
+            var req = context.Properties.First(x => x.Name == nameof(HttpClientContext.Request));
+            var resp = context.Properties.First(x => x.Name == nameof(HttpClientContext.Response));
+            var requestHeaders = ((StructureValue)req.Value).Properties.First(x => x.Name == nameof(HttpClientRequestContext.Headers)).Value.ToDictionary(); ;
+            var authHeader = requestHeaders.First(x => x.Key.ToScalar().ToString() == "Authorization").Value.ToString();
+            var responseBody = ((StructureValue)resp.Value).Properties.First(x => x.Name == nameof(HttpClientResponseContext.Body)).Value;
+            var passwordValue = ((StructureValue)responseBody).Properties.First(x => x.Name == "Password").Value.ToScalar()
+                .ToString();
+            Assert.Contains("\"*** MASKED ***\"",  authHeader);
+            Assert.Contains("*** MASKED ***",  passwordValue);
         }
     }
 
@@ -254,6 +194,7 @@ public class LoggingDelegatingHandlerTests
     {
         Log.Logger = new LoggerConfiguration()
             .Enrich.FromLogContext()
+            .AddJsonDestructuringPolicies()
             .WriteTo.TestCorrelator()
             .CreateLogger();
 

@@ -28,7 +28,9 @@ using Serilog.Context;
 using Serilog.Debugging;
 using Serilog.Events;
 using Serilog.HttpClient.Extensions;
+using Serilog.HttpClient.Extensions;
 using Serilog.HttpClient.Models;
+using Serilog.Parsing;
 
 namespace Serilog.HttpClient
 {
@@ -36,6 +38,7 @@ namespace Serilog.HttpClient
     {
         private readonly RequestLoggingOptions _options;
         private readonly ILogger _logger;
+        private readonly MessageTemplate _messageTemplate;
 
         public LoggingDelegatingHandler(
             RequestLoggingOptions options,
@@ -43,6 +46,7 @@ namespace Serilog.HttpClient
         {
             _options = options ?? throw new ArgumentNullException(nameof(options));
             _logger = options.Logger?.ForContext<LoggingDelegatingHandler>() ?? Serilog.Log.Logger.ForContext<LoggingDelegatingHandler>();
+            _messageTemplate = new MessageTemplateParser().Parse(options.MessageTemplate);
 
 #if NETCOREAPP3_1_OR_GREATER
             if (!forHttpClientFactory)
@@ -160,8 +164,9 @@ namespace Serilog.HttpClient
                     SelfLog.WriteLine("Cannot parse query string");
                 }
 
-                var requestData = new HttpRequestInfo
+                var requestData = new HttpClientRequestContext
                 {
+                    Url = req.RequestUri.ToString(),
                     Method = req.Method?.Method,
                     Scheme = req.RequestUri.Scheme, 
                     Host = req.RequestUri.Host,
@@ -221,7 +226,7 @@ namespace Serilog.HttpClient
                     }
                 }
 
-                var responseData = new HttpResponseInfo
+                var responseData = new HttpClientResponseContext
                 {
                     StatusCode = (int?)resp?.StatusCode, 
                     IsSucceed = isRequestOk, 
@@ -232,16 +237,22 @@ namespace Serilog.HttpClient
                 };
                 
                 var httpClientContext = new HttpClientContext { Request = requestData, Response = responseData };
-                var messageOptions = _options.GetLogMessageAndProperties(httpClientContext);
+                var messageProperties = _options.GetMessageTemplateProperties(httpClientContext, _logger);
                 var contextLogger = _logger;
-                if (messageOptions.AdditionalProperties != null)
-                {
-                    foreach (var p in messageOptions.AdditionalProperties)
-                    {
-                        contextLogger = contextLogger.ForContext(p.Key, p.Value, true);
-                    }
-                }
-                contextLogger.Write(level, ex, messageOptions.MessageTemplate, messageOptions.MessageParameters);
+                
+                var traceId = Activity.Current?.TraceId ?? default(ActivityTraceId);
+                var spanId = Activity.Current?.SpanId ?? default(ActivitySpanId);
+                
+                var evt = new LogEvent(
+                    DateTimeOffset.Now,
+                    level,
+                    ex ,
+                    _messageTemplate,
+                    messageProperties,
+                    traceId,
+                    spanId);
+            
+                contextLogger.Write(evt);
             }
         }
     }

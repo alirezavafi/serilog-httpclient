@@ -15,11 +15,19 @@ namespace Serilog.HttpClient
     public class RequestLoggingOptions
     {
         /// <summary>
-        /// A function returning the <see cref="LogEntryParameters"/> based on the <see cref="HttpClientContext"/> information,
-        /// default behavior is logging message with template "HTTP Client {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms"
-        /// and attaching HTTP contextual data <see cref="HttpClientContext"/> as property named "Context"
+        /// Gets or sets the message template. The default value is
+        /// <c>"HTTP Client Request Completed {@Context}"</c>. The
+        /// template can contain any of the placeholders from the default template, names of properties
         /// </summary>
-        public Func<HttpClientContext, LogEntryParameters> GetLogMessageAndProperties { get; set; }
+        /// <value>
+        /// The message template.
+        /// </value>
+        public string MessageTemplate { get; set; }
+    
+        /// <summary>
+        /// A function to specify the values of the MessageTemplateProperties.
+        /// </summary>
+        public Func<HttpClientContext, ILogger, IEnumerable<LogEventProperty>> GetMessageTemplateProperties { get; set; }
         
         /// <summary>
         /// A function returning the <see cref="LogEventLevel"/> based on the <see cref="HttpRequestMessage"/>/<see cref="HttpResponseMessage"/> information,
@@ -100,7 +108,8 @@ namespace Serilog.HttpClient
         public RequestLoggingOptions()
         {
             GetLevel = DefaultGetLevel;
-            GetLogMessageAndProperties = DefaultLogMessageAndProperties;
+            MessageTemplate = DefaultRequestCompletionMessageTemplate;
+            GetMessageTemplateProperties = DefaultGetMessageTemplateProperties;
         }
 
         private static LogEventLevel DefaultGetLevel(HttpRequestMessage req, HttpResponseMessage resp, double elapsedMs, Exception ex)
@@ -116,14 +125,16 @@ namespace Serilog.HttpClient
             return level;
         }
         
-        private static LogEntryParameters DefaultLogMessageAndProperties(HttpClientContext h)
+        const string DefaultRequestCompletionMessageTemplate = "HTTP Client Request Completed {@Context}";
+
+        static IEnumerable<LogEventProperty> DefaultGetMessageTemplateProperties(HttpClientContext httpContextInfo, ILogger logger)
         {
-            return new LogEntryParameters()
-            {
-                MessageTemplate = "HTTP Client {RequestMethod} {RequestPath} responded {StatusCode} in {ElapsedMilliseconds:0.0000} ms",
-                MessageParameters = new object[]{ h.Request.Method, h.Request.Path, h.Response.StatusCode, h.Response.ElapsedMilliseconds, h},
-                AdditionalProperties = { ["Context"] = h }
-            };
+            logger.BindProperty("Context", httpContextInfo, true, out var prop);
+            if (prop != null)
+                return new[] { prop };
+
+            return Array.Empty<LogEventProperty>();
         }
+
     }
 }

@@ -8,11 +8,11 @@
         /// <summary>
         /// HTTP request information
         /// </summary>
-        public HttpRequestInfo Request { get; set; }
+        public HttpClientRequestContext Request { get; set; }
         
         /// <summary>
         /// HTTP response information
         /// </summary>
-        public HttpResponseInfo Response { get; set; }
+        public HttpClientResponseContext Response { get; set; }
     }
 }

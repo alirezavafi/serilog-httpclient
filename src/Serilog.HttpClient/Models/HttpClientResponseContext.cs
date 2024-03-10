@@ -5,7 +5,7 @@ namespace Serilog.HttpClient.Models
     /// <summary>
     /// HTTP response information
     /// </summary>
-    public class HttpResponseInfo
+    public class HttpClientResponseContext
     {
         /// <summary>
         /// HTTP response status code
