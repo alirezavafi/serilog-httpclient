@@ -121,7 +121,7 @@ namespace Serilog.HttpClient
             return new LogEntryParameters()
             {
                 MessageTemplate = "HTTP Client {RequestMethod} {RequestPath} responded {StatusCode} in {ElapsedMilliseconds:0.0000} ms",
-                MessageParameters = new object[]{ h.Request.Method, h.Request.Path, h.Response.StatusCode, h.Response.ElapsedMilliseconds, h},
+                MessageParameters = new object[]{ h.Request.Method, h.Request.Path, h.Response.StatusCode, h.Response.ElapsedMilliseconds},
                 AdditionalProperties = { ["Context"] = h }
             };
         }
