@@ -86,7 +86,7 @@ namespace Serilog.HttpClient
         {
             var level = _options.GetLevel(req, resp, elapsedMs, ex);
             if (!_logger.IsEnabled(level)) return;
-
+            if (!_options.LogFilter(req, resp, elapsedMs, ex)) return;
             var requestBodyText = string.Empty;
             var responseBodyText = string.Empty;
 

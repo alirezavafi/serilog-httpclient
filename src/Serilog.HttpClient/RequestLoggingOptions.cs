@@ -33,6 +33,12 @@ namespace Serilog.HttpClient
         public Func<HttpRequestMessage, HttpResponseMessage, double, Exception, LogEventLevel> GetLevel { get; set; }
 
         /// <summary>
+        /// A function returning weather request should be logged based on the <see cref="HttpRequestMessage"/>/<see cref="HttpResponseMessage"/> information,
+        /// the number of elapsed milliseconds required for handling the request, and an <see cref="Exception" /> if one was thrown.
+        /// </summary>
+        public Func<HttpRequestMessage, HttpResponseMessage, double, Exception, bool> LogFilter { get; set; }
+
+        /// <summary>
         /// The logger through which request completion events will be logged. The default is to use the
         /// static <see cref="Log"/> class.
         /// </summary>
@@ -101,6 +107,12 @@ namespace Serilog.HttpClient
         {
             GetLevel = DefaultGetLevel;
             GetLogMessageAndProperties = DefaultLogMessageAndProperties;
+            LogFilter = DefaultLogFilter;
+        }
+
+        private static bool DefaultLogFilter(HttpRequestMessage req, HttpResponseMessage resp, double elapsedMs, Exception ex)
+        {
+            return true;
         }
 
         private static LogEventLevel DefaultGetLevel(HttpRequestMessage req, HttpResponseMessage resp, double elapsedMs, Exception ex)
