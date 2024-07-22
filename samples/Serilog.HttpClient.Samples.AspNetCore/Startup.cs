@@ -45,7 +45,18 @@ namespace Serilog.HttpClient.Samples.AspNetCore
                     //Proxy = new WebProxy("127.0.0.1", 8888)
                 });
             //or
- 
+            services
+              .AddHttpClient<IMyOtherService, MyOtherService>()
+              .CorrelateRequests("X-Correlation-ID")
+              .LogRequestResponse(p =>
+              {
+                p.LogMode = LogMode.LogNone;
+              })
+              // /*OR*/ .LogRequestResponse()
+              .ConfigurePrimaryHttpMessageHandler(p => new HttpClientHandler()
+              {
+                //Proxy = new WebProxy("127.0.0.1", 8888)
+              });
             services.AddControllers();
         }
 

@@ -1,6 +1,8 @@
 using System;
 using Microsoft.Extensions.DependencyInjection;
+#if NET8_0_OR_GREATER
 using Microsoft.Extensions.DependencyInjection.Extensions;
+#endif
 using Microsoft.Extensions.Options;
 
 namespace Serilog.HttpClient.Extensions
@@ -22,14 +24,22 @@ namespace Serilog.HttpClient.Extensions
                 throw new ArgumentNullException(nameof(builder));
             
             builder.Services.Configure(builder.Name, configureOptions);
-            builder.Services.TryAddTransient(s =>
+#if NET8_0_OR_GREATER
+            builder.Services.TryAddKeyedTransient<LoggingDelegatingHandler>(builder.Name, (s, k) =>
             {
-                var o = s.GetRequiredService<IOptionsSnapshot<RequestLoggingOptions>>();
-                return new LoggingDelegatingHandler(o.Get(builder.Name), default, true);
+              var opt = s.GetRequiredService<IOptionsSnapshot<RequestLoggingOptions>>();
+              return new LoggingDelegatingHandler(opt.Get((string)k), default, true);
             });
-            builder.AddHttpMessageHandler(s => s.GetRequiredService<LoggingDelegatingHandler>());
-
+            builder.AddHttpMessageHandler(s => s.GetRequiredKeyedService<LoggingDelegatingHandler>(builder.Name));
+#else
+            builder.AddHttpMessageHandler(s =>
+            {
+              var o = s.GetRequiredService<IOptionsSnapshot<RequestLoggingOptions>>().Get(builder.Name);
+              return new LoggingDelegatingHandler(o, forHttpClientFactory: true);
+            });
+#endif
             return builder;
         }
     }
+
 }
