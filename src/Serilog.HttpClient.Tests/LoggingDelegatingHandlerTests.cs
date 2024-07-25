@@ -73,6 +73,43 @@ public class LoggingDelegatingHandlerTests
             Assert.Equal("*", response[nameof(HttpClientResponseContext.Headers)].Value.ToDictionary().First().Value.ToScalar());
         }
     }
+    
+    [Fact]
+    public void Test_Log_Filter_Request()
+    {
+        MockResponse(new HttpResponseMessage
+        {
+            StatusCode = HttpStatusCode.OK,
+            Content = new StringContent("this is the response body"),
+            Headers =
+            {
+                ETag = EntityTagHeaderValue.Any
+            }
+        });
+
+        var client = CreateHttpClient(new RequestLoggingOptions
+        {
+            ResponseBodyLogMode = LogMode.LogAll,
+            LogFilter = (req, resp, elapsedMs, ex) => req.RequestUri.ToString() != "https://example.com/path?query=1" 
+        });
+
+        using (TestCorrelator.CreateContext())
+        {
+            client.SendAsync(new HttpRequestMessage
+            {
+                Method = HttpMethod.Post,
+                RequestUri = new Uri("https://example.com/path?query=1"),
+                Content = new StringContent("this is the request body"),
+                Headers =
+                {
+                    Referrer = new Uri("https://example.com/referrer")
+                }
+            });
+
+            var logEvents = TestCorrelator.GetLogEventsFromCurrentContext();
+            Assert.Empty(logEvents);
+        }
+    }
 
     [Fact]
     public void Test_Log_Request_With_Customized_Log_Entry()
