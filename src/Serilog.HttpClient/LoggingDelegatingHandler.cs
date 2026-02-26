@@ -42,7 +42,7 @@ namespace Serilog.HttpClient
 
         public LoggingDelegatingHandler(
             RequestLoggingOptions options,
-            HttpMessageHandler httpMessageHandler = default, bool forHttpClientFactory = false)
+            HttpMessageHandler httpMessageHandler = null, bool forHttpClientFactory = false)
         {
             _options = options ?? throw new ArgumentNullException(nameof(options));
             _logger = options.Logger?.ForContext<LoggingDelegatingHandler>() ?? Serilog.Log.Logger.ForContext<LoggingDelegatingHandler>();

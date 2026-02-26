@@ -28,7 +28,7 @@ namespace Serilog.HttpClient.Extensions
             builder.Services.TryAddKeyedTransient<LoggingDelegatingHandler>(builder.Name, (s, k) =>
             {
               var opt = s.GetRequiredService<IOptionsSnapshot<RequestLoggingOptions>>();
-              return new LoggingDelegatingHandler(opt.Get((string)k), default, true);
+              return new LoggingDelegatingHandler(opt.Get((string)k), null, true);
             });
             builder.AddHttpMessageHandler(s => s.GetRequiredKeyedService<LoggingDelegatingHandler>(builder.Name));
 #else

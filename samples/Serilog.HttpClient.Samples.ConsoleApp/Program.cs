@@ -36,7 +36,7 @@ namespace Serilog.HttpClient.Samples.ConsoleApp
             });
 
             var c = new System.Net.Http.HttpClient(loggingHandler);
-            var o = Task.Run(() => c.GetFromJsonAsync<object>("https://reqres.in/api/users?page=2")).Result;
+            var o = Task.Run(() => c.GetFromJsonAsync<object>("https://jsonplaceholder.typicode.com/users/1")).Result;
         }
     }
 }

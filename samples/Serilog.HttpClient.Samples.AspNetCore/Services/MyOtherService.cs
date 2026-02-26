@@ -18,7 +18,7 @@ namespace Serilog.HttpClient.Samples.AspNetCore.Services
 
         public Task<object> SendRequest()
         {
-            return _httpClient.GetFromJsonAsync<object>("https://reqres.in/api/users?page=1");
+            return _httpClient.GetFromJsonAsync<object>("https://jsonplaceholder.typicode.com/users/2");
         }
     }
 }
