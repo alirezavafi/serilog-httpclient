@@ -1,18 +1,22 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>net5.0;net6.0;net7.0;netcoreapp3.1;netstandard2.0;netstandard2.1;net8.0</TargetFrameworks>
+        <TargetFrameworks>net5.0;net6.0;net7.0;netcoreapp3.1;netstandard2.0;netstandard2.1;net8.0;net10.0</TargetFrameworks>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <Title>Serilog http client logging delegating handler </Title>
         <Authors>Alireza Vafi</Authors>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageProjectUrl>https://github.com/alirezavafi/serilog-httpclient</PackageProjectUrl>
         <RepositoryUrl>https://github.com/alirezavafi/serilog-httpclient</RepositoryUrl>
-        <PackageVersion>3.0.0</PackageVersion>
+        <PackageVersion>3.0.2</PackageVersion>
     </PropertyGroup>
+    <ItemGroup>
+        <None Include="..\..\README.md" Pack="true" Visible="false" PackagePath="/" />
+    </ItemGroup>
     <ItemGroup>
         <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-        <PackageReference Include="Serilog" Version="3.1.1" />
+        <PackageReference Include="Serilog" Version="4.3.1" />
         <PackageReference Include="System.Net.Http" Version="4.3.4" />
     </ItemGroup>
     <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
@@ -58,5 +62,11 @@
         <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
         <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
         <PackageReference Include="System.Text.Json" Version="8.0.2" />
+    </ItemGroup>
+    <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
+        <PackageReference Include="System.Text.Json" Version="10.0.0" />
     </ItemGroup>
 </Project>
