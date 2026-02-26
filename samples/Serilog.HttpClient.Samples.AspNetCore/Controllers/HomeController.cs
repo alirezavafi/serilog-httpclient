@@ -8,15 +8,25 @@ namespace Serilog.HttpClient.Samples.AspNetCore.Controllers
     {
         private readonly IMyService _myService;
 
-        public HomeController(IMyService myService)
+        // for demonstrating multiple configurations of HttpClient
+        private readonly IMyOtherService _myOtherService;
+
+        public HomeController(IMyService myService, IMyOtherService myOtherService)
         {
-            _myService = myService;
+          _myService = myService;
+          _myOtherService = myOtherService;
         }
         
         public async Task<IActionResult> Index()
         {
            var result =  await _myService.SendRequest();
            return Ok(result);
+        }
+
+        public async Task<IActionResult> Other()
+        {
+          var otherResult = await _myOtherService.SendRequest();
+          return Ok(otherResult);
         }
     }
 }
