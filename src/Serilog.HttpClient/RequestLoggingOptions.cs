@@ -89,9 +89,9 @@ namespace Serilog.HttpClient
         
         /// <summary>
         /// Properties to mask request/response body and headers before logging to output to prevent sensitive data leakage
-        /// default is "*password*", "*token*", "*secret*", "*bearer*", "*authorization*","*otp"
+        /// default is "*password*", "*token*", "*secret*", "*bearer*", "*authorization*","*otp", "*api-key*", "*apikey*", "cookie"
         /// </summary>
-        public IList<string> MaskedProperties { get; } = new List<string>() {"*password*", "*token*", "*secret*", "*bearer*", "*authorization*","*otp"};
+        public IList<string> MaskedProperties { get; } = new List<string>() {"*password*", "*token*", "*secret*", "*bearer*", "*authorization*","*otp", "*api-key*", "*apikey*", "cookie"};
         
         /// <summary>
         /// Mask format to replace with masked data
