@@ -49,7 +49,7 @@ public class LoggingDelegatingHandlerTests
             Assert.Single(logEvents);
 
             var logEvent = logEvents.First();
-            Assert.Equal("HTTP Client Request Completed {@Context}", logEvent.MessageTemplate.Text);
+            Assert.Equal("HTTP Client Request Completed ({@Path})", logEvent.MessageTemplate.Text);
             Assert.Equal(LogEventLevel.Information, logEvent.Level);
             Assert.Null(logEvent.Exception);
             var request = ((StructureValue)((StructureValue)logEvent.Properties["Context"]).Properties.First(x => x.Name == nameof(HttpClientContext.Request)).Value).Properties.ToDictionary(x => x.Name);

@@ -137,15 +137,15 @@ namespace Serilog.HttpClient
             return level;
         }
         
-        const string DefaultRequestCompletionMessageTemplate = "HTTP Client Request Completed {@Context}";
+        const string DefaultRequestCompletionMessageTemplate = "HTTP Client Request Completed ({@Path})";
 
         static IEnumerable<LogEventProperty> DefaultGetMessageTemplateProperties(HttpClientContext httpContextInfo, ILogger logger)
         {
+            var properties = new List<LogEventProperty>();
+            properties.Add(new LogEventProperty("Path", new ScalarValue(httpContextInfo.Request.Path)));
             logger.BindProperty("Context", httpContextInfo, true, out var prop);
-            if (prop != null)
-                return new[] { prop };
-
-            return Array.Empty<LogEventProperty>();
+            if (prop != null) properties.Add(prop);
+            return properties;
         }
     }
 }
