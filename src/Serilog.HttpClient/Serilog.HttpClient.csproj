@@ -5,10 +5,14 @@
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <Title>Serilog http client logging delegating handler </Title>
         <Authors>Alireza Vafi</Authors>
+        <Description>Serilog logging for outgoing HttpClient requests: masked bodies and headers, size truncation, and log level by response status code</Description>
+        <PackageTags>serilog;logging;httpclient;structured-logging</PackageTags>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageProjectUrl>https://github.com/alirezavafi/serilog-httpclient</PackageProjectUrl>
         <RepositoryUrl>https://github.com/alirezavafi/serilog-httpclient</RepositoryUrl>
-        <PackageVersion>3.0.5</PackageVersion>
+        <RepositoryType>git</RepositoryType>
+        <PackageVersion>3.0.6</PackageVersion>
     </PropertyGroup>
     <ItemGroup>
         <None Include="..\..\README.md" Pack="true" PackagePath="/" />
